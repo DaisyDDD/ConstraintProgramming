@@ -1,0 +1,104 @@
+language ESSENCE' 1.0
+$ CS4402 practical 1
+$ Solar panels allocation problem - First model-2
+
+$ The number of panels 
+given numPanels : int(1..)
+
+$ The powel of each panel
+given panelPower : matrix indexed by [int(1..numPanels)] of int(1..)
+
+$ The area of each panel
+given panelArea : matrix indexed by [int(1..numPanels)] of int(1..)
+
+$The number of buildings
+given numBuilds : int(1..)
+
+$ The powel needed for each building
+given buildPower : matrix indexed by [int(1..numBuilds)] of int(1..)
+
+$ The total area of each building
+given buildArea : matrix indexed by [int(1..numBuilds)] of int(1..)
+
+$ The number of workers
+given numWorkers : int(1..)
+
+$ The capacity of each workers
+given workercapacity : matrix indexed by [int(1..numWorkers)] of int(1..)
+
+$ The cost of each workers
+given workercost : matrix indexed by [int(1..numWorkers)] of int(1..)
+
+$ The budget for each day
+given budgetPerDay : int(1..)
+
+$ The number of required working days
+given numDays : int(1..)
+
+$ =============FIND=============
+$ Find the panels in which building
+find panelBuild : matrix indexed by [int(1..numBuilds), int(1..numPanels)] of int(0..1)
+
+$ Find the panels for which workers 
+find panelWorkerDay : matrix indexed by [ int(1..numPanels), int(1..numWorkers), int(1..numDays)] of int(0..1)
+
+$ Branching variables
+branching on [ panelBuild , panelWorkerDay]
+
+$ Store the square difference of power produced and power required for each building
+find differences : matrix indexed by [int(1..numBuilds)] of int(0..10000)
+
+$ Minimize the sum
+minimising sum(differences)
+$=================Constraints==================
+such that
+
+$ Each panel need to be assigned to only one building for one worker in one day.
+$ Sum of each columns in panelBuilds equals 1
+$ sum of each row in panelWorkerDay(flatten) equals 1
+forAll panel : int (1..numPanels) .  
+  (sum i : int (1..numBuilds) . panelBuild[i,panel] ) = 1 /\
+  (sum( flatten( panelWorkerDay[panel,.. , ..]))) = 1 ,
+
+
+
+$ Get the square difference of each buildings
+forAll building : int(1..numBuilds) .
+  differences[building] = (( sum panel: int(1..numPanels) . panelPower[panel] * panelBuild[building, panel] ) - buildPower[building])**2 ,
+
+
+$ Total area of panels on one building cannot be greater than the building’s roof area
+$ Sum of area of panels with non-empty value in panelBuilds <= building area
+forAll building: int(1..numBuilds) .
+ ( sum panel : int(1..numPanels) .
+     panelArea[panel] * panelBuild[building, panel] ) <= buildArea[building],
+
+
+$ Panel area must not be greater than worker capacity
+forAll day : int(1..numDays) .
+  forAll worker : int(1..numWorkers) .
+    (sum panel : int(1..numPanels) .
+     panelWorkerDay[panel , worker , day] * panelArea[panel]) <= workercapacity[worker],
+
+
+$ Payment for workers per day cannot surpass the daily budget
+$ Maxmum value in panelWorkerDay in each day * workercost <= budgetPerDa
+forAll day : int(1..numDays) . 
+ ( sum worker : int(1..numWorkers) .
+     max( flatten( panelWorkerDay[.. , worker , day]))  *  workercost[worker]) <= budgetPerDay,
+
+
+$ Breaking symmetry
+forAll d : int(1..numDays-1) .
+  forAll dLater : int(d+1..numDays) .
+     flatten( panelWorkerDay[.. , .. , d]) <=lex flatten( panelWorkerDay[.., .., dLater]) \/
+     flatten( panelWorkerDay[.. , .. , d]) >=lex flatten( panelWorkerDay[.., .., dLater]),
+
+
+
+
+
+    
+
+true
+
